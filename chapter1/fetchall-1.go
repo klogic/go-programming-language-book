@@ -7,14 +7,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
 func main() {
 	start := time.Now()
 	ch := make(chan string)
-	for _, url := range os.Args[1:] {
-		go fetch(url, ch) //start a goroutine
+	for index, url := range os.Args[1:] {
+		go fetch(url, ch, index) //start a goroutine
 	}
 	for range os.Args[1:] {
 		fmt.Println(<-ch) // receive from channel ch
@@ -22,7 +23,7 @@ func main() {
 	fmt.Printf("%.2fs elapsed\n", time.Since(start).Seconds())
 }
 
-func fetch(url string, ch chan<- string) {
+func fetch(url string, ch chan<- string, index int) {
 	start := time.Now()
 	resp, err := http.Get(url)
 	if err != nil {
@@ -30,6 +31,11 @@ func fetch(url string, ch chan<- string) {
 		return
 	}
 
+	out, err := os.Create(strconv.Itoa(index) + ".txt")
+	if err != nil {
+		fmt.Println("error created files")
+	}
+	out.ReadFrom(resp.Body)
 	nbytes, err := io.Copy(ioutil.Discard, resp.Body)
 	resp.Body.Close()
 	if err != nil {
